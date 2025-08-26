@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MECSOL | Dashboard de Control IA</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-funnel@3.1.0/dist/chart.funnel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-slate-900 text-gray-200 font-[Roboto] antialiased">
+
+    <div id="app" class="flex flex-col min-h-screen">
+        <!-- Header -->
+        <header class="bg-slate-800/50 backdrop-blur-sm border-b border-slate-700 p-4 sticky top-0 z-20">
+            <div class="container mx-auto flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="bg-blue-600 p-2 rounded-lg">
+                        <i data-lucide="cpu" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-white">MECSOL</h1>
+                        <p class="text-xs text-slate-400">Sistema de Control IA</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="text-sm text-slate-300 hidden md:block">8/26/2025 6:53 PM</span>
+                    <button class="relative p-2 rounded-full hover:bg-slate-700 transition-colors">
+                        <i data-lucide="bell"></i>
+                        <span class="absolute top-1 right-1 block h-2.5 w-2.5 rounded-full bg-red-500 border-2 border-slate-800"></span>
+                    </button>
+                    <img src="https://i.pravatar.cc/40?u=mecsol_admin" alt="User Avatar" class="w-10 h-10 rounded-full border-2 border-slate-600">
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-grow container mx-auto p-4 md:p-6 lg:p-8">
+            <!-- Navigation Tabs -->
+            <div class="mb-6 border-b border-slate-700">
+                <nav class="flex space-x-2 md:space-x-4 -mb-px" id="dashboard-tabs">
+                    <button data-tab="financiera" class="tab-btn active-tab group inline-flex items-center gap-2 py-3 px-1 md:px-4 border-b-2 font-medium">
+                        <i data-lucide="line-chart" class="w-5 h-5"></i>
+                        Salud Financiera
+                    </button>
+                    <button data-tab="operativa" class="tab-btn group inline-flex items-center gap-2 py-3 px-1 md:px-4 border-b-2 font-medium">
+                        <i data-lucide="settings-2" class="w-5 h-5"></i>
+                        Eficiencia Operativa
+                    </button>
+                    <button data-tab="comercial" class="tab-btn group inline-flex items-center gap-2 py-3 px-1 md:px-4 border-b-2 font-medium">
+                        <i data-lucide="trending-up" class="w-5 h-5"></i>
+                        Crecimiento Comercial
+                    </button>
+                </nav>
+            </div>
+
+            <!-- AI Alerts Section -->
+            <div class="mb-6 p-4 rounded-lg bg-sky-900/50 border border-sky-700 flex flex-col md:flex-row gap-4">
+                <div class="flex-shrink-0 flex items-center gap-3">
+                     <i data-lucide="sparkles" class="w-8 h-8 text-sky-400"></i>
+                     <h3 class="text-lg font-semibold text-white">Alertas y Recomendaciones IA</h3>
+                </div>
+                <div class="md:border-l border-sky-800 md:pl-4 grid grid-cols-1 lg:grid-cols-2 gap-4 flex-grow">
+                    <div class="text-sm p-3 bg-slate-800 rounded-md">
+                        <p class="font-bold text-amber-400 flex items-center gap-2"><i data-lucide="alert-triangle" class="w-4 h-4"></i> Alerta de Costos</p>
+                        <p class="text-slate-300 mt-1">El Ratio de Gastos Administrativos ha superado el 35% por dos meses consecutivos. <span class="font-semibold text-slate-100">Recomendación:</span> Revisar suscripciones de software y gastos de servicios generales.</p>
+                    </div>
+                    <div class="text-sm p-3 bg-slate-800 rounded-md">
+                        <p class="font-bold text-green-400 flex items-center gap-2"><i data-lucide="lightbulb" class="w-4 h-4"></i> Oportunidad de Mercado</p>
+                        <p class="text-slate-300 mt-1">Aumento del 15% en demanda de automatización en el sector manufacturero de Apodaca. <span class="font-semibold text-slate-100">Recomendación:</span> Priorizar prospectos de esta área.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Panes -->
+            <div id="content-panes">
+                <!-- Salud Financiera Pane -->
+                <div id="financiera" class="tab-pane">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Deuda Total Chart -->
+                        <div class="md:col-span-2 lg:col-span-3 p-4 bg-slate-800/60 rounded-xl border border-slate-700 shadow-lg">
+                            <h3 class="font-semibold text-lg mb-4 text-white">Evolución de la Deuda Total</h3>
+                            <div class="h-72"><canvas id="deudaChart"></canvas></div>
+                        </div>
+                        <!-- Gauge Charts -->
+                        <div class="p-4 bg-slate-800/60 rounded-xl border border-slate-700 shadow-lg">
+                            <h3 class="font-semibold text-center text-white">Ratio Cobertura de Intereses</h3>
+                            <div class="relative h-48"><canvas id="interesesGauge"></canvas></div>
+                        </div>
+                        <div class="p-4 bg-slate-800/60 rounded-xl border border-slate-700 shadow-lg">
+                            <h3 class="font-semibold text-center text-white">Gastos Admins vs. Ingresos</h3>
+                             <div class="relative h-48"><canvas id="gastosGauge"></canvas></div>
+                        </div>
+                        <!-- Margen de Contribución Table -->
+                        <div class="lg:col-span-1 md:col-span-2 p-4 bg-slate-800/60 rounded-xl border border-slate-700 shadow-lg">
+                             <h3 class="font-semibold text-lg mb-4 text-white">Margen por Proyecto</h3>
+                             <div class="overflow-x-auto">
+                                <table class="w-full text-sm text-left">
+                                    <thead class="text-xs text-slate-400 uppercase bg-slate-900/50">
+                                        <tr>
+                                            <th scope="col" class="px-4 py-3">Proyecto</th>
+                                            <th scope="col" class="px-4 py-3 text-right">Margen</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="proyectos-table">
+                                    </tbody>
+                                </table>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Eficiencia Operativa Pane -->
+                <div id="operativa" class="tab-pane hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 p-4 bg-slate-800/60 rounded-xl border border-slate-700 shadow-lg">
+                             <h3 class="font-semibold text-lg mb-4 text-white">Tasa de Utilización de Recursos</h3>
+                             <div class="h-80"><canvas id="utilizacionChart"></canvas></div>
+                        </div>
+                        <div class="flex flex-col gap-6">
+                            <div class="p-6 bg-slate-800/60 rounded-xl border border-slate-700 shadow-lg text-center">
+                                <h3 class="font-medium text-slate-300">Cumplimiento de Cronograma</h3>
+                                <p class="text-5xl font-bold text-green-400 mt-2">92%</p>
+                                <p class="text-xs text-slate-400 mt-1">+2% vs mes anterior</p>
+                            </div>
+                            <div class="p-6 bg-slate-800/60 rounded-xl border border-slate-700 shadow-lg text-center">
+                                <h3 class="font-medium text-slate-300">Tasa de Retrabajo</h3>
+                                <p class="text-5xl font-bold text-amber-400 mt-2">4.7%</p>
+                                <p class="text-xs text-slate-400 mt-1">-0.5% vs mes anterior</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Crecimiento Comercial Pane -->
+                <div id="comercial" class="tab-pane hidden">
+                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="flex flex-col gap-6">
+                            <div class="p-6 bg-slate-800/60 rounded-xl border border-slate-700 shadow-lg text-center">
+                                <h3 class="font-medium text-slate-300">Tasa Conversión Cotizaciones</h3>
+                                <p class="text-5xl font-bold text-sky-400 mt-2">28%</p>
+                                <p class="text-xs text-slate-400 mt-1">+5% vs trimestre anterior</p>
+                            </div>
+                             <div class="p-6 bg-slate-800/60 rounded-xl border border-slate-700 shadow-lg text-center">
+                                <h3 class="font-medium text-slate-300">Valor Promedio de Proyecto</h3>
+                                <p class="text-5xl font-bold text-sky-400 mt-2">$750K</p>
+                                <p class="text-xs text-slate-400 mt-1>+120K vs trimestre anterior</p>
+                            </div>
+                        </div>
+                         <div class="lg:col-span-2 p-4 bg-slate-800/60 rounded-xl border border-slate-700 shadow-lg">
+                             <h3 class="font-semibold text-lg mb-4 text-white">Embudo de Ventas (MQL a Cierre)</h3>
+                             <div class="h-80"><canvas id="funnelChart"></canvas></div>
+                        </div>
+                     </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
