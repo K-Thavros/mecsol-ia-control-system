@@ -1,0 +1,60 @@
+# Docker Compose para orquestar el Sistema de Control MECSOL AI.
+# Define los servicios, redes y configuraciones para ejecutar la aplicación.
+version: '3.8'
+
+services:
+  # 1. Proxy Service (Nginx)
+  # Punto de entrada único que enruta el tráfico a los servicios correctos.
+  proxy:
+    build: ./proxy
+    container_name: mecsol-proxy
+    ports:
+      - "80:80"
+    depends_on:
+      - frontend
+      - finance_agent
+      - operations_agent
+      - commercial_agent
+    networks:
+      - mecsol-net
+    restart: unless-stopped
+
+  # 2. Frontend Service (Web Dashboard)
+  # Sirve los archivos estáticos del dashboard (HTML, CSS, JS).
+  frontend:
+    build: ./frontend
+    container_name: mecsol-frontend
+    networks:
+      - mecsol-net
+    restart: unless-stopped
+
+  # 3. Finance Agent Microservice (Flask Backend)
+  # Maneja la lógica y datos financieros.
+  finance_agent:
+    build: ./backend/finance
+    container_name: mecsol-finance-agent
+    networks:
+      - mecsol-net
+    restart: unless-stopped
+
+  # 4. Operations Agent Microservice (Flask Backend)
+  # Gestiona la lógica operativa.
+  operations_agent:
+    build: ./backend/operations
+    container_name: mecsol-operations-agent
+    networks:
+      - mecsol-net
+    restart: unless-stopped
+
+  # 5. Commercial Agent Microservice (Flask Backend)
+  # Gestiona datos y lógica comercial.
+  commercial_agent:
+    build: ./backend/commercial
+    container_name: mecsol-commercial-agent
+    networks:
+      - mecsol-net
+    restart: unless-stopped
+
+networks:
+  mecsol-net:
+    driver: bridge
