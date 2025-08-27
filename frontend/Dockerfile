@@ -1,13 +1,8 @@
-# ---- Etapa 1: Construcción (Builder) ----
-FROM node:18-alpine AS builder
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
-
-# ---- Etapa 2: Producción (Final) ----
+# Usa una imagen base de Nginx ligera
 FROM nginx:stable-alpine
-COPY --from=builder /app/dist /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+
+# Elimina la configuración por defecto de Nginx
+RUN rm /etc/nginx/conf.d/default.conf
+
+# Copia el archivo del dashboard al directorio web de Nginx
+COPY index.html /usr/share/nginx/html/index.html
