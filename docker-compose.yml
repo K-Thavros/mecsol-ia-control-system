@@ -1,86 +1,43 @@
-# Docker Compose file for orchestrating the MECSOL AI Control System.
-# This file defines the services, networks, and configurations required to run the
-# entire application stack in a containerized environment.
+version: '3.8'
 
-# The 'services' section defines the individual containers that make up the application.
 services:
-  # 1. Proxy Service (Nginx)
-  # Acts as the single entry point for all incoming traffic. It routes requests
-  # to the appropriate backend service (frontend or an API agent) based on the URL.
-  proxy:
-    # Specifies the build context. Docker will look for a Dockerfile in the './nginx' directory.
+  nginx:
     build: ./nginx
-    # Assigns a specific, human-readable name to the container for easier management.
-    container_name: mecsol-proxy
-    # Exposes ports from the container to the host machine.
-    # This is the only service that should be publicly accessible.
+    container_name: nginx_proxy
     ports:
-      - "80:80"   # Maps HTTP traffic from the host's port 80 to the container's port 80.
-    # Defines the startup order. This ensures the proxy only starts after
-    # all backend services it depends on are running and ready.
+      - "8000:80"
     depends_on:
       - frontend
       - finance_agent
       - operations_agent
       - commercial_agent
-    # Connects the service to our custom network, enabling communication with other services.
     networks:
       - mecsol-net
-    # Ensures the proxy service is always restarted if it stops, unless manually stopped.
-    restart: unless-stopped
 
-  # 2. Frontend Service (Web Dashboard)
-  # A lightweight Nginx server dedicated to serving the static files (HTML, CSS, JS)
-  # of the user-facing dashboard.
   frontend:
-    # Build context for the frontend application.
     build: ./frontend
-    container_name: mecsol-frontend
-    # This service does not expose any ports to the host; all traffic is routed
-    # internally through the 'proxy' service.
+    container_name: frontend_ui
     networks:
       - mecsol-net
-    restart: unless-stopped
 
-  # 3. Finance Agent Microservice (Flask Backend)
-  # Handles business logic and data processing related to financial operations.
   finance_agent:
-    # Build context for the finance microservice.
-    build: ./services/finance_agent
-    container_name: mecsol-finance-agent
+    build: ./backend/finance_agent
+    container_name: finance_agent_service
     networks:
       - mecsol-net
-    restart: unless-stopped
 
-  # 4. Operations Agent Microservice (Flask Backend)
-  # Manages the operational logic of the system.
   operations_agent:
-    # Build context for the operations microservice.
-    build: ./services/operations_agent
-    container_name: mecsol-operations-agent
+    build: ./backend/operations_agent
+    container_name: operations_agent_service
     networks:
       - mecsol-net
-    restart: unless-stopped
 
-  # 5. Commercial Agent Microservice (Flask Backend)
-  # Manages commercial data and interactions.
   commercial_agent:
-    # Build context for the commercial microservice.
-    build: ./services/commercial_agent
-    container_name: mecsol-commercial-agent
-    # Loads environment variables from a .env file located in the project root.
-    # This is the standard practice for managing secrets and configuration without
-    # hardcoding them into the version-controlled files.
-    env_file:
-      - .env
+    build: ./backend/commercial_agent
+    container_name: commercial_agent_service
     networks:
       - mecsol-net
-    restart: unless-stopped
 
-# The 'networks' section defines the custom networks for inter-service communication.
 networks:
-  # Defines a custom bridge network named 'mecsol-net'.
-  # Using a custom network provides a secure, isolated environment where containers
-  # can discover and communicate with each other using their service names as hostnames.
   mecsol-net:
     driver: bridge
