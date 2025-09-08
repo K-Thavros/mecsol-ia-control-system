@@ -1,0 +1,21 @@
+# Environment variables & secrets
+.env
+*.env
+
+# Certbot certificates and private keys
+# These directories are mounted as volumes but should be ignored
+# in case any local development creates them.
+infra/certbot/**/archive/
+infra/certbot/**/live/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
