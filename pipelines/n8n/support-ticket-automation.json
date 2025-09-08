@@ -1,0 +1,79 @@
+{
+  "name": "Soporte: Automatización de Tickets (WhatsApp a NocoDB)",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [ 240, 300 ]
+    },
+    {
+      "parameters": {
+        "account": "twilio-credentials-placeholder",
+        "event": "message.received"
+      },
+      "name": "Twilio Trigger: Mensaje de WhatsApp Entrante",
+      "type": "n8n-nodes-base.twilioTrigger",
+      "typeVersion": 1,
+      "position": [ 460, 300 ],
+      "credentials": {
+        "twilioApi": "twilio-credentials-placeholder"
+      }
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableId": "support_tickets_table_id_placeholder",
+        "fields": {
+          "contact_email": "={{$json.body.From}}",
+          "subject": "Ticket de WhatsApp",
+          "description": "={{$json.body.Body}}"
+        }
+      },
+      "name": "NocoDB: Crear Ticket de Soporte",
+      "type": "n8n-nodes-base.nocoDb",
+      "typeVersion": 1,
+      "position": [ 680, 300 ],
+      "credentials": {
+        "nocoDbApi": "nocodb-credentials-placeholder"
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4",
+        "prompt": "Eres un agente de soporte de primer nivel para MECSOL. Has recibido el siguiente ticket de un cliente: '{{$json.body.Body}}'. Por favor, redacta una respuesta inicial amable, informando que hemos recibido su solicitud y que un especialista la revisará pronto. El número de ticket es {{$node['NocoDB: Crear Ticket de Soporte'].json.Id}}."
+      },
+      "name": "OpenAI: Generar Respuesta Inicial",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [ 900, 300 ],
+      "credentials": {
+        "openAiApi": "openai-credentials-placeholder"
+      }
+    },
+    {
+      "parameters": {
+        "from": "whatsapp:+14155238886",
+        "to": "={{$json.body.From}}",
+        "body": "={{$node['OpenAI: Generar Respuesta Inicial'].json.choices[0].message.content}}"
+      },
+      "name": "Twilio: Enviar Respuesta Automática",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [ 1120, 300 ],
+      "credentials": {
+        "twilioApi": "twilio-credentials-placeholder"
+      }
+    }
+  ],
+  "connections": {
+    "Twilio Trigger: Mensaje de WhatsApp Entrante": { "main": [ [ { "node": "NocoDB: Crear Ticket de Soporte", "type": "main", "index": 0 } ] ] },
+    "NocoDB: Crear Ticket de Soporte": { "main": [ [ { "node": "OpenAI: Generar Respuesta Inicial", "type": "main", "index": 0 } ] ] },
+    "OpenAI: Generar Respuesta Inicial": { "main": [ [ { "node": "Twilio: Enviar Respuesta Automática", "type": "main", "index": 0 } ] ] }
+  },
+  "active": false,
+  "settings": {},
+  "id": "3"
+}

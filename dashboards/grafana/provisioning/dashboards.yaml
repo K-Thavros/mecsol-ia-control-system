@@ -1,0 +1,27 @@
+# ===================================================================
+# Archivo: dashboards.yaml
+# Descripción: Configuración para el provisioning de dashboards en Grafana.
+# Grafana leerá este archivo al iniciar y cargará automáticamente
+# todos los dashboards JSON que se encuentren en el directorio especificado.
+# ===================================================================
+apiVersion: 1
+
+providers:
+  # 'default' es el nombre del proveedor de dashboards.
+  - name: 'default'
+    # ID de la organización a la que pertenecen los dashboards.
+    orgId: 1
+    # Nombre de la carpeta dentro de la UI de Grafana.
+    # Dejar en blanco para que aparezcan en la página principal.
+    folder: ''
+    # Tipo de proveedor. 'file' significa que los dashboards se leen de archivos.
+    type: file
+    # No permitir que los usuarios eliminen los dashboards desde la UI.
+    disableDeletion: false
+    # Permitir que los dashboards sean editados desde la UI.
+    editable: true
+    # Opciones específicas para el proveedor de tipo 'file'.
+    options:
+      # Ruta dentro del contenedor de Grafana donde se encuentran los JSON.
+      # Esta ruta se monta a través del volumen en docker-compose.yml.
+      path: /etc/grafana/provisioning/json

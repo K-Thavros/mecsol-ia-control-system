@@ -1,0 +1,152 @@
+# ===================================================================
+# Server Block para HTTP (Puerto 80)
+# - Responde al desafío ACME de Let's Encrypt.
+# - Redirige todo el demás tráfico a HTTPS.
+# ===================================================================
+server {
+    listen 80;
+    # Escucha en todos los subdominios que usaremos
+    server_name
+        api-${ENVIRONMENT}.${DOMAIN}
+        noco-${ENVIRONMENT}.${DOMAIN}
+        grafana-${ENVIRONMENT}.${DOMAIN}
+        n8n-${ENVIRONMENT}.${DOMAIN}
+        odoo-${ENVIRONMENT}.${DOMAIN};
+
+    # Ruta para que Certbot pueda verificar el dominio
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    # Redirección permanente de HTTP a HTTPS
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# ===================================================================
+# Server Blocks para cada servicio en HTTPS (Puerto 443)
+# ===================================================================
+
+# --- API (FastAPI Orquestador) ---
+server {
+    listen 443 ssl http2;
+    server_name api-${ENVIRONMENT}.${DOMAIN};
+
+    # Certificados SSL (manejados por Certbot)
+    ssl_certificate /etc/letsencrypt/live/api-${ENVIRONMENT}.${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api-${ENVIRONMENT}.${DOMAIN}/privkey.pem;
+
+    # Parámetros de SSL recomendados por Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    # Headers de Seguridad
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
+
+    # Aplicar Rate Limiting (definido en nginx.conf)
+    limit_req zone=api_limit burst=20 nodelay;
+
+    location / {
+        proxy_pass http://fastapi:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# --- NocoDB ---
+server {
+    listen 443 ssl http2;
+    server_name noco-${ENVIRONMENT}.${DOMAIN};
+    ssl_certificate /etc/letsencrypt/live/noco-${ENVIRONMENT}.${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/noco-${ENVIRONMENT}.${DOMAIN}/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
+
+    location / {
+        proxy_pass http://nocodb:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# --- n8n ---
+server {
+    listen 443 ssl http2;
+    server_name n8n-${ENVIRONMENT}.${DOMAIN};
+    ssl_certificate /etc/letsencrypt/live/n8n-${ENVIRONMENT}.${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/n8n-${ENVIRONMENT}.${DOMAIN}/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
+
+    location / {
+        proxy_pass http://n8n:5678;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# --- Odoo ---
+server {
+    listen 443 ssl http2;
+    server_name odoo-${ENVIRONMENT}.${DOMAIN};
+    ssl_certificate /etc/letsencrypt/live/odoo-${ENVIRONMENT}.${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/odoo-${ENVIRONMENT}.${DOMAIN}/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
+
+    client_max_body_size 100m;
+
+    location / {
+        proxy_pass http://odoo:8069;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+
+# --- Grafana ---
+server {
+    listen 443 ssl http2;
+    server_name grafana-${ENVIRONMENT}.${DOMAIN};
+    ssl_certificate /etc/letsencrypt/live/grafana-${ENVIRONMENT}.${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/grafana-${ENVIRONMENT}.${DOMAIN}/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
+
+    location / {
+        proxy_pass http://grafana:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
