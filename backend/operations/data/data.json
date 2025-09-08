@@ -1,0 +1,106 @@
+{
+  "projects": [
+    {
+      "project_id": "PRJ-2025-045",
+      "client_name": "Aceros del Toro S.A.",
+      "status": "active",
+      "project_margin": 0.25,
+      "urgency_score": 8,
+      "required_skills": ["Soldadura TIG", "Interpretación de Planos"],
+      "requires_equipment": true
+    },
+    {
+      "project_id": "PRJ-2025-051",
+      "client_name": "Industrias del Norte",
+      "status": "pending",
+      "project_margin": 0.28,
+      "urgency_score": 7,
+      "required_skills": ["Soldadura TIG", "Operación CNC"],
+      "requires_equipment": true
+    },
+    {
+      "project_id": "PRJ-2025-052",
+      "client_name": "Constructora Regia",
+      "status": "pending",
+      "project_margin": 0.35,
+      "urgency_score": 9,
+      "required_skills": ["Montaje Estructural", "Interpretación de Planos"],
+      "requires_equipment": false
+    },
+    {
+      "project_id": "PRJ-2025-053",
+      "client_name": "Química Global",
+      "status": "pending",
+      "project_margin": 0.22,
+      "urgency_score": 6,
+      "required_skills": ["Soldadura TIG"],
+      "requires_equipment": true
+    },
+    {
+      "project_id": "PRJ-2025-048",
+      "client_name": "Logística Express",
+      "status": "completed",
+      "project_margin": 0.30,
+      "urgency_score": 5,
+      "required_skills": ["Montaje Estructural"],
+      "requires_equipment": false
+    }
+  ],
+  "personnel": [
+    {
+      "employee_id": "MEC-0113",
+      "name": "Carlos Rodríguez",
+      "status": "assigned",
+      "skills": ["Soldadura TIG", "Interpretación de Planos"],
+      "certifications": [{"name": "AWS Certified Welder", "expiry": "2026-11-20"}],
+      "utilization_rate": 0.91
+    },
+    {
+      "employee_id": "MEC-0114",
+      "name": "Ana López",
+      "status": "available",
+      "skills": ["Operación CNC", "Control de Calidad"],
+      "certifications": [],
+      "utilization_rate": 0.82
+    },
+    {
+      "employee_id": "MEC-0115",
+      "name": "Luis Martinez",
+      "status": "available",
+      "skills": ["Montaje Estructural", "Interpretación de Planos"],
+      "certifications": [],
+      "utilization_rate": 0.88
+    },
+    {
+      "employee_id": "MEC-0116",
+      "name": "Sofia Hernandez",
+      "status": "available",
+      "skills": ["Soldadura TIG", "Control de Calidad"],
+      "certifications": [{"name": "AWS Certified Welder", "expiry": "2027-05-10"}],
+      "utilization_rate": 0.75
+    }
+  ],
+  "equipment": [
+    {
+      "equipment_id": "EQP-CNC-002",
+      "name": "Torno CNC Haas ST-20",
+      "status": "available",
+      "location": "Planta 1, Bahía 3",
+      "next_maintenance_date": "2025-09-15"
+    },
+    {
+      "equipment_id": "EQP-WLD-005",
+      "name": "Máquina de Soldar Miller",
+      "status": "in_use",
+      "location": "Proyecto Aceros del Toro",
+      "next_maintenance_date": "2025-10-01"
+    },
+    {
+      "equipment_id": "EQP-WLD-006",
+      "name": "Máquina de Soldar Lincoln",
+      "status": "available",
+      "location": "Almacén",
+      "next_maintenance_date": "2025-11-05"
+    }
+  ]
+}

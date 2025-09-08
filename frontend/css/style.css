@@ -1,0 +1,29 @@
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.tab-btn {
+    border-color: transparent;
+    color: #94a3b8; /* slate-400 */
+    transition: all 0.2s ease-in-out;
+}
+
+.tab-btn:hover {
+    color: #e2e8f0; /* slate-200 */
+    border-color: #475569; /* slate-600 */
+}
+
+.tab-btn.active-tab {
+    color: #38bdf8; /* sky-400 */
+    border-color: #38bdf8; /* sky-400 */
+}
+
+.gauge-center-text {
+    position: absolute;
+    top: 65%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    pointer-events: none;
+}
