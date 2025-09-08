@@ -1,0 +1,173 @@
+version: '3.8'
+
+networks:
+  web-proxy:
+    driver: bridge
+  internal-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  odoo_data:
+  odoo_extra_addons:
+  n8n_data:
+  nocodb_data:
+  grafana_data:
+  certbot_certs:
+  certbot_webroot:
+  nginx_conf:
+
+services:
+  # --- Base de Datos ---
+  postgres:
+    image: postgres:15-alpine
+    container_name: mecsol_postgres
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal-net
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      POSTGRES_USER: ${POSTGRES_USER:-odoo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --- ERP y CRM ---
+  odoo:
+    image: odoo:16.0
+    container_name: mecsol_odoo
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - odoo_data:/var/lib/odoo
+      - odoo_extra_addons:/mnt/extra-addons
+    networks:
+      - internal-net
+      - web-proxy
+    environment:
+      HOST: postgres
+      USER: ${POSTGRES_USER:-odoo}
+      PASSWORD: ${POSTGRES_PASSWORD}
+      ODOO_MASTER_PASSWORD: ${ODOO_MASTER_PASSWORD}
+    # Odoo runs on port 8069
+
+  # --- Base de Datos No-Code ---
+  nocodb:
+    image: nocodb/nocodb:latest
+    container_name: mecsol_nocodb
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    networks:
+      - internal-net
+      - web-proxy
+    environment:
+      NC_DB: "pg:///${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}"
+      NC_AUTH_JWT_SECRET: ${JWT_SECRET}
+    volumes:
+      - nocodb_data:/usr/app/data
+    # NocoDB runs on port 8080
+
+  # --- Automatización de Workflows ---
+  n8n:
+    image: n8ncloud/n8n:latest
+    container_name: mecsol_n8n
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    networks:
+      - internal-net
+      - web-proxy
+    environment:
+      DB_TYPE: 'postgres'
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_DATABASE: ${POSTGRES_DB:-postgres}
+      DB_POSTGRESDB_USER: ${POSTGRES_USER:-odoo}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      TZ: ${TZ}
+      WEBHOOK_URL: "https://${N8N_SUBDOMAIN}.${DOMAIN}"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    # n8n runs on port 5678
+
+  # --- Dashboards y Analítica ---
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: mecsol_grafana
+    restart: unless-stopped
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - web-proxy
+    # Grafana runs on port 3000
+
+  # --- Orquestador de IA ---
+  fastapi:
+    build:
+      context: ../../apps/fastapi
+    container_name: mecsol_fastapi_orchestrator
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    networks:
+      - internal-net
+      - web-proxy
+    env_file:
+      - ../../.env
+    # The port 8000 is exposed within the container by the Dockerfile
+
+  # --- Proxy Inverso y Certificados SSL ---
+  nginx:
+    build:
+      context: ../nginx
+    container_name: mecsol_nginx_proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/nginx/app.conf.template:/etc/nginx/templates/app.conf.template:ro
+      - nginx_conf:/etc/nginx/conf.d
+      - certbot_certs:/etc/letsencrypt
+      - certbot_webroot:/var/www/certbot
+    networks:
+      - web-proxy
+    depends_on:
+      - odoo
+      - nocodb
+      - n8n
+      - grafana
+      - fastapi
+
+  certbot:
+    image: certbot/certbot
+    container_name: mecsol_certbot
+    volumes:
+      - certbot_certs:/etc/letsencrypt
+      - certbot_webroot:/var/www/certbot
+    # Command to get certs and then run a renewal loop.
+    # IMPORTANT: For this to work seamlessly, a process (like a host cronjob)
+    # should periodically run 'docker compose exec mecsol_nginx_proxy nginx -s reload'
+    # to make NGINX pick up the renewed certificates.
+    command: >
+      sh -c "
+        certbot certonly --webroot --webroot-path=/var/www/certbot \
+          --email ${EMAIL_ACME} --agree-tos --no-eff-email \
+          -d ${API_SUBDOMAIN}.${DOMAIN} -d ${ODOO_SUBDOMAIN}.${DOMAIN} \
+          -d ${N8N_SUBDOMAIN}.${DOMAIN} -d ${NOCO_SUBDOMAIN}.${DOMAIN} \
+          -d ${GRAFANA_SUBDOMAIN}.${DOMAIN} \
+          --rsa-key-size 4096 --non-interactive --keep-until-expiring \
+          --staging && \
+        while true; do \
+          sleep 12h & wait $${!}; \
+          certbot renew -q --post-hook 'echo \"Certificates renewed. NGINX reload should be triggered externally.\"'; \
+        done
+      "
