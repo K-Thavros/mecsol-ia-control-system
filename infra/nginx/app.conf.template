@@ -1,47 +1,36 @@
 # ===================================================================
-# NGINX Configuration for MECSOL AI System
+# Plantilla de Configuración de NGINX para el Sistema de IA de MECSOL
 #
-# This file handles:
-# 1. HTTP to HTTPS redirection.
-# 2. LetsEncrypt ACME challenge for SSL certificate validation.
-# 3. Secure reverse proxy for all backend services.
+# Este archivo maneja:
+# 1. Redirección de HTTP a HTTPS.
+# 2. Desafío ACME de LetsEncrypt para la validación de certificados SSL.
+# 3. Proxy inverso seguro para todos los servicios de backend.
 # ===================================================================
 
-# --- HTTP Server: For Redirection and ACME Challenge ---
-# This server block catches all HTTP traffic.
+# --- Servidor HTTP: Para Redirección y Desafío ACME ---
 server {
     listen 80;
     listen [::]:80;
 
-    # This server_name catches all hostnames.
+    # Este server_name atrapa todos los hostnames.
     server_name _;
 
-    # Handle Let's Encrypt ACME challenge.
+    # Manejar el desafío ACME de Let's Encrypt.
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
     }
 
-    # For all other requests, redirect to HTTPS.
+    # Para todas las demás solicitudes, redirigir a HTTPS.
     location / {
-        return 301 https://$host$request_uri;
+        return 301 https://${DOLLAR}host${DOLLAR}request_uri;
     }
 }
 
-# --- Common SSL and Security Parameters ---
-# These parameters will be included in all HTTPS server blocks.
-# This avoids repetition and ensures consistency.
-# File: /etc/nginx/conf.d/options-ssl-nginx.conf (this is a virtual path)
-# In a real scenario, we'd use an include, but for a single file we define it here conceptually.
-# add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-# ssl_protocols TLSv1.2 TLSv1.3;
-# ssl_ciphers '...'; # A strong cipher suite
-# ssl_prefer_server_ciphers on;
-
 # ===================================================================
-# HTTPS Reverse Proxy Server Blocks
+# Bloques de Servidor para Proxy Inverso HTTPS
 # ===================================================================
 
-# --- FastAPI Orchestrator ---
+# --- Orquestador FastAPI ---
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
@@ -49,16 +38,15 @@ server {
 
     location / {
         proxy_pass http://fastapi:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host ${DOLLAR}host;
+        proxy_set_header X-Real-IP ${DOLLAR}remote_addr;
+        proxy_set_header X-Forwarded-For ${DOLLAR}proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto ${DOLLAR}scheme;
     }
 
-    # SSL Configuration
+    # Configuración SSL
     ssl_certificate /etc/letsencrypt/live/${API_SUBDOMAIN}.${DOMAIN}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/${API_SUBDOMAIN}.${DOMAIN}/privkey.pem;
-    # include /etc/nginx/conf.d/options-ssl-nginx.conf; # Concept
 }
 
 # --- Odoo (ERP/CRM) ---
@@ -69,18 +57,17 @@ server {
 
     location / {
         proxy_pass http://odoo:8069;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header Host ${DOLLAR}host;
+        proxy_set_header X-Real-IP ${DOLLAR}remote_addr;
+        proxy_set_header X-Forwarded-For ${DOLLAR}proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto ${DOLLAR}scheme;
     }
 
     ssl_certificate /etc/letsencrypt/live/${ODOO_SUBDOMAIN}.${DOMAIN}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/${ODOO_SUBDOMAIN}.${DOMAIN}/privkey.pem;
 }
 
-# --- n8n (Workflow Automation) ---
+# --- n8n (Automatización de Workflows) ---
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
@@ -88,17 +75,17 @@ server {
 
     location / {
         proxy_pass http://n8n:5678;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host ${DOLLAR}host;
+        proxy_set_header X-Real-IP ${DOLLAR}remote_addr;
+        proxy_set_header X-Forwarded-For ${DOLLAR}proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto ${DOLLAR}scheme;
     }
 
     ssl_certificate /etc/letsencrypt/live/${N8N_SUBDOMAIN}.${DOMAIN}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/${N8N_SUBDOMAIN}.${DOMAIN}/privkey.pem;
 }
 
-# --- NocoDB (No-Code Database) ---
+# --- NocoDB (Base de Datos No-Code) ---
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
@@ -106,17 +93,17 @@ server {
 
     location / {
         proxy_pass http://nocodb:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host ${DOLLAR}host;
+        proxy_set_header X-Real-IP ${DOLLAR}remote_addr;
+        proxy_set_header X-Forwarded-For ${DOLLAR}proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto ${DOLLAR}scheme;
     }
 
     ssl_certificate /etc/letsencrypt/live/${NOCO_SUBDOMAIN}.${DOMAIN}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/${NOCO_SUBDOMAIN}.${DOMAIN}/privkey.pem;
 }
 
-# --- Grafana (Analytics) ---
+# --- Grafana (Analítica) ---
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
@@ -124,10 +111,10 @@ server {
 
     location / {
         proxy_pass http://grafana:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host ${DOLLAR}host;
+        proxy_set_header X-Real-IP ${DOLLAR}remote_addr;
+        proxy_set_header X-Forwarded-For ${DOLLAR}proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto ${DOLLAR}scheme;
     }
 
     ssl_certificate /etc/letsencrypt/live/${GRAFANA_SUBDOMAIN}.${DOMAIN}/fullchain.pem;

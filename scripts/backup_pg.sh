@@ -28,18 +28,19 @@ if [ ! -f "$ENV_FILE" ]; then
     exit 1
 fi
 
-# Cargar variables de entorno desde .env
+# Cargar variables de entorno desde .env para este script
 export $(grep -v '^#' $ENV_FILE | xargs)
 
 # Verificar que las variables necesarias están definidas
-if [ -z "$POSTGRES_USER" ] || [ -z "$POSTGRES_DB" ]; then
-    echo "Error: POSTGRES_USER o POSTGRES_DB no están definidos en el archivo .env."
+if [ -z "$POSTGRES_USER" ] || [ -z "$POSTGRES_DB" ] || [ -z "$POSTGRES_PASSWORD" ]; then
+    echo "Error: POSTGRES_USER, POSTGRES_DB, o POSTGRES_PASSWORD no están definidos en .env."
     exit 1
 fi
 
 # Verificar que el contenedor está corriendo
 if ! docker ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "${CONTAINER_NAME}"; then
     echo "Error: El contenedor de PostgreSQL '${CONTAINER_NAME}' no está en ejecución."
+    echo "Por favor, inicie el stack con 'docker compose up -d'."
     exit 1
 fi
 
@@ -50,19 +51,16 @@ BACKUP_FILE="${BACKUP_DIR}/backup-${TIMESTAMP}.sql.gz"
 echo "[1/3] Configuración de backup validada."
 echo "  -> Contenedor: ${CONTAINER_NAME}"
 echo "  -> Base de datos: ${POSTGRES_DB}"
-echo "  -> Usuario: ${POSTGRES_USER}"
 echo "  -> Archivo de salida: ${BACKUP_FILE}"
 
 # --- 4. Ejecutar pg_dump dentro del contenedor ---
 echo "[2/3] Ejecutando pg_dump dentro del contenedor..."
 
-# Usar docker exec para correr pg_dump. La contraseña no es necesaria
-# en el comando porque la conexión desde dentro del contenedor
-# (como el usuario postgres) a menudo está configurada como 'trust'.
-# Si se requiriera, se pasaría a través de la variable PGPASSWORD.
-docker exec -t "${CONTAINER_NAME}" pg_dumpall -c -U "${POSTGRES_USER}" | gzip > "${BACKUP_FILE}"
+# PGPASSWORD se pasa como variable de entorno al comando docker exec
+docker exec -e PGPASSWORD=$POSTGRES_PASSWORD \
+    "${CONTAINER_NAME}" pg_dump -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -F c -b | gzip > "${BACKUP_FILE}"
 
-# --- 5. Verificación y Limpieza (Opcional) ---
+# --- 5. Verificación y Limpieza ---
 echo "[3/3] Verificando el archivo de backup..."
 if [ -s "$BACKUP_FILE" ]; then
     echo "¡Éxito! Backup creado y guardado en ${BACKUP_FILE}"
@@ -74,7 +72,7 @@ else
 fi
 
 # Opcional: Eliminar backups con más de 30 días de antigüedad
-# find "$BACKUP_DIR" -name "backup-*.sql.gz" -mtime +30 -exec rm {} \;
-# echo "Se eliminaron los backups con más de 30 días de antigüedad."
+find "$BACKUP_DIR" -name "backup-*.sql.gz" -mtime +30 -exec rm {} \;
+echo "Se eliminaron los backups con más de 30 días de antigüedad (si los hubiera)."
 
 echo "### Proceso de Backup Completado. ###"

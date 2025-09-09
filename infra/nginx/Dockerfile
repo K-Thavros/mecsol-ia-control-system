@@ -1,17 +1,14 @@
-# Use the official NGINX image as a base
+# Usar la imagen oficial de NGINX como base
 FROM nginx:1.25-alpine
 
-# Install the 'gettext' package which provides the 'envsubst' utility.
-# We update the package list, install the package, and then clean up the cache
-# to keep the image size small.
+# Instalar 'gettext' que provee la utilidad 'envsubst'.
+# Se actualiza la lista de paquetes, se instala y se limpia la caché
+# para mantener la imagen lo más pequeña posible.
 RUN apk update && apk add --no-cache gettext
 
-# Copy the startup script into the container
-COPY start-nginx.sh /docker-entrypoint.d/start-nginx.sh
+# Copiar el script de inicio al directorio de entrypoint de NGINX.
+# Los scripts en este directorio se ejecutan antes de que NGINX inicie.
+COPY start-nginx.sh /docker-entrypoint.d/99-start-nginx.sh
 
-# Make the startup script executable
-RUN chmod +x /docker-entrypoint.d/start-nginx.sh
-
-# The entrypoint will automatically execute scripts in /docker-entrypoint.d/
-# before starting the main NGINX process.
-# We don't need to override the CMD or ENTRYPOINT.
+# Hacer el script de inicio ejecutable
+RUN chmod +x /docker-entrypoint.d/99-start-nginx.sh

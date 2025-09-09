@@ -13,10 +13,10 @@ echo "### Iniciando Bootstrap para el VPS de MECSOL... ###"
 
 # --- 1. Actualizar el sistema ---
 echo "[1/4] Actualizando lista de paquetes del sistema..."
-apt-get update
+apt-get update -y
 
 # --- 2. Instalar dependencias para Docker ---
-echo "[2/4] Instalando dependencias necesarias..."
+echo "[2/4] Instalando dependencias necesarias (curl, gnupg, etc.)..."
 apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release
 
 # --- 3. Instalar Docker Engine ---
@@ -24,8 +24,9 @@ if ! command -v docker &> /dev/null
 then
     echo "[3/4] Docker no encontrado. Instalando Docker Engine..."
     # Añadir GPG key oficial de Docker
-    mkdir -p /etc/apt/keyrings
+    install -m 0755 -d /etc/apt/keyrings
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    chmod a+r /etc/apt/keyrings/docker.gpg
 
     # Configurar el repositorio de Docker
     echo \
@@ -33,7 +34,7 @@ then
       $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
 
     # Instalar Docker Engine y CLI
-    apt-get update
+    apt-get update -y
     apt-get install -y docker-ce docker-ce-cli containerd.io
 else
     echo "[3/4] Docker ya está instalado. Omitiendo."

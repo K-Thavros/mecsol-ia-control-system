@@ -4,11 +4,10 @@ set -e
 # ===================================================================
 # Script: generate_env_secrets.sh
 # Descripción: Genera un archivo .env a partir de .env.example,
-# rellena las variables de secretos vacías sin imprimirlas en
-# pantalla y finalmente asigna permisos seguros al archivo.
+# rellena las variables de secretos vacías y asigna permisos seguros.
 # ===================================================================
 
-# Navegar a la raíz del proyecto para que los archivos se creen allí
+# Navegar a la raíz del proyecto
 cd "$(dirname "$0")/.."
 ENV_FILE=".env"
 EXAMPLE_FILE=".env.example"
@@ -19,11 +18,11 @@ if [ ! -f "$EXAMPLE_FILE" ]; then
     exit 1
 fi
 
-# Comprobar si .env ya existe
+# Comprobar si .env ya existe y pedir confirmación para sobreescribir
 if [ -f "$ENV_FILE" ]; then
     read -p "El archivo ${ENV_FILE} ya existe. ¿Desea sobreescribirlo? (s/N): " choice
     case "$choice" in
-      s|S ) echo "Creando un nuevo archivo .env...";;
+      s|S ) echo "Creando un nuevo archivo .env desde la plantilla...";;
       * ) echo "Operación cancelada."; exit 0;;
     esac
 fi
@@ -31,7 +30,7 @@ fi
 # Copiar la plantilla para preservar comentarios y estructura
 cp "$EXAMPLE_FILE" "$ENV_FILE"
 
-echo "Generando secretos en ${ENV_FILE}..."
+echo "Generando secretos aleatorios en ${ENV_FILE}..."
 
 # Leer .env.example para identificar qué variables necesitan secretos
 while IFS= read -r line || [ -n "$line" ]; do
@@ -45,11 +44,12 @@ while IFS= read -r line || [ -n "$line" ]; do
 
     # Si el valor está vacío, generar un secreto y reemplazarlo en .env
     if [ -z "$value" ]; then
-        secret=$(openssl rand -hex 64)
+        # Usar openssl para generar un secreto criptográficamente seguro
+        secret=$(openssl rand -hex 32)
         # Usar un delimitador que no entre en conflicto con el secreto.
         # sed -i edita el archivo "in-place".
         sed -i "s|^${key}=|${key}=${secret}|" "$ENV_FILE"
-        echo "  -> Secreto generado para ${key} (valor oculto)."
+        echo "  -> Secreto generado para ${key}."
     fi
 done < "$EXAMPLE_FILE"
 
