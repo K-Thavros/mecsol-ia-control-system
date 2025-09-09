@@ -1,0 +1,72 @@
+{
+  "__inputs": [],
+  "__requires": [
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "7.5.0"
+    },
+    {
+      "type": "datasource",
+      "id": "postgres",
+      "name": "PostgreSQL",
+      "version": "1.0.0"
+    }
+  ],
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Nuevos Leads (Últimos 7 días)",
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 0 },
+      "datasource": {
+        "type": "postgres",
+        "uid": "postgres"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) FROM leads WHERE created_at > NOW() - INTERVAL '7 days'",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Cotizaciones Enviadas (Últimos 7 días)",
+      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 0 },
+      "datasource": {
+        "type": "postgres",
+        "uid": "postgres"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) FROM quotes WHERE sent_at > NOW() - INTERVAL '7 days'",
+          "format": "table"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 36,
+  "style": "dark",
+  "tags": ["mecsol", "sales-funnel"],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "MECSOL - Embudo de Ventas",
+  "uid": "mecsol-main-sales-dashboard",
+  "version": 1
+}

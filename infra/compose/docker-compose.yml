@@ -1,0 +1,187 @@
+version: '3.8'
+
+# ===================================================================
+# Redes: una para el proxy web y otra interna para los backends
+# ===================================================================
+networks:
+  web-proxy:
+    driver: bridge
+  internal-net:
+    driver: bridge
+
+# ===================================================================
+# Volúmenes: para la persistencia de los datos de cada servicio
+# ===================================================================
+volumes:
+  postgres_data:
+  odoo_data:
+  odoo_extra_addons:
+  n8n_data:
+  nocodb_data:
+  grafana_data:
+  certbot_certs:
+  certbot_webroot:
+
+services:
+  # --- Base de Datos PostgreSQL ---
+  postgres:
+    image: postgres:15-alpine
+    container_name: mecsol_postgres
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal-net
+    env_file:
+      - ../../.env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --- ERP y CRM (Odoo) ---
+  odoo:
+    image: odoo:16.0
+    container_name: mecsol_odoo
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - odoo_data:/var/lib/odoo
+      - odoo_extra_addons:/mnt/extra-addons
+    networks:
+      - internal-net
+      - web-proxy
+    environment:
+      HOST: postgres
+      USER: ${POSTGRES_USER}
+      PASSWORD: ${POSTGRES_PASSWORD}
+    env_file:
+      - ../../.env
+    # El puerto interno de Odoo es 8069
+
+  # --- Base de Datos No-Code (NocoDB) ---
+  nocodb:
+    image: nocodb/nocodb:latest
+    container_name: mecsol_nocodb
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    networks:
+      - internal-net
+      - web-proxy
+    environment:
+      NC_DB: "pg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}"
+      NC_AUTH_JWT_SECRET: ${JWT_SECRET}
+    volumes:
+      - nocodb_data:/usr/app/data
+    # El puerto interno de NocoDB es 8080
+
+  # --- Automatización de Workflows (n8n) ---
+  n8n:
+    image: n8ncloud/n8n:latest
+    container_name: mecsol_n8n
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    networks:
+      - internal-net
+      - web-proxy
+    environment:
+      DB_TYPE: 'postgres'
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_DATABASE: ${POSTGRES_DB}
+      DB_POSTGRESDB_USER: ${POSTGRES_USER}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
+      WEBHOOK_URL: "https://${N8N_SUBDOMAIN}.${DOMAIN}"
+    env_file:
+      - ../../.env
+    volumes:
+      - n8n_data:/home/node/.n8n
+    # El puerto interno de n8n es 5678
+
+  # --- Dashboards y Analítica (Grafana) ---
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: mecsol_grafana
+    restart: unless-stopped
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./dashboards/grafana:/etc/grafana/provisioning/dashboards
+    networks:
+      - web-proxy
+      - internal-net # Para conectar a la BBDD
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD} # Necesita ser añadido a .env.example
+      GF_DATABASE_TYPE: postgres
+      GF_DATABASE_HOST: postgres:5432
+      GF_DATABASE_NAME: ${POSTGRES_DB}
+      GF_DATABASE_USER: ${POSTGRES_USER}
+      GF_DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+    # El puerto interno de Grafana es 3000
+
+  # --- Orquestador de IA (FastAPI) ---
+  fastapi:
+    build:
+      context: ../../apps/fastapi
+    container_name: mecsol_fastapi_orchestrator
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal-net
+      - web-proxy
+    env_file:
+      - ../../.env
+    # El puerto 8000 es expuesto por el Dockerfile
+
+  # --- Proxy Inverso (NGINX) y Certificados SSL (Certbot) ---
+  nginx:
+    build:
+      context: ../nginx
+    container_name: mecsol_nginx_proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/nginx/app.conf.template:/etc/nginx/templates/app.conf.template:ro
+      - certbot_certs:/etc/letsencrypt
+      - certbot_webroot:/var/www/certbot
+    networks:
+      - web-proxy
+    env_file:
+      - ../../.env
+    depends_on:
+      - fastapi
+      - odoo
+      - n8n
+      - nocodb
+      - grafana
+
+  certbot:
+    image: certbot/certbot
+    container_name: mecsol_certbot
+    volumes:
+      - certbot_certs:/etc/letsencrypt
+      - certbot_webroot:/var/www/certbot
+    env_file:
+      - ../../.env
+    command: >
+      sh -c "
+        certbot certonly --webroot --webroot-path=/var/www/certbot \
+          --email ${EMAIL_ACME} --agree-tos --no-eff-email --non-interactive \
+          -d ${API_SUBDOMAIN}.${DOMAIN} -d ${ODOO_SUBDOMAIN}.${DOMAIN} \
+          -d ${N8N_SUBDOMAIN}.${DOMAIN} -d ${NOCO_SUBDOMAIN}.${DOMAIN} \
+          -d ${GRAFANA_SUBDOMAIN}.${DOMAIN} \
+          --rsa-key-size 4096 --keep-until-expiring \
+          --staging && \
+        while true; do \
+          sleep 12h & wait $${!}; \
+          certbot renew -q; \
+        done
+      "

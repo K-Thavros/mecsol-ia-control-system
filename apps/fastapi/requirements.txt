@@ -1,0 +1,14 @@
+# --- Core FastAPI ---
+fastapi==0.103.2
+uvicorn[standard]==0.23.2
+pydantic==2.4.2
+
+# --- Base de Datos ---
+psycopg2-binary==2.9.7
+sqlalchemy==2.0.21
+
+# --- APIs y HTTP Requests ---
+httpx==0.25.0
+
+# --- Utilidades ---
+python-dotenv==1.0.0

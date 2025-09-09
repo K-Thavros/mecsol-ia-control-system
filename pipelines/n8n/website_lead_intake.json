@@ -1,0 +1,74 @@
+{
+  "name": "Website Lead Intake",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "path": "lead-webhook",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        400,
+        300
+      ],
+      "webhookId": "placeholder-webhook-id"
+    },
+    {
+      "parameters": {
+        "url": "http://fastapi:8000/v1/lead/intake",
+        "options": {},
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "source",
+              "value": "website_form"
+            },
+            {
+              "name": "contact_email",
+              "value": "={{$json.body.email}}"
+            },
+            {
+              "name": "details",
+              "value": "={{$json.body}}"
+            }
+          ]
+        }
+      },
+      "name": "POST to FastAPI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        600,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "POST to FastAPI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "id": "1"
+}
